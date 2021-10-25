@@ -1,0 +1,5 @@
+*.olean
+*.o
+*.a
+*.cpp
+./Machine
