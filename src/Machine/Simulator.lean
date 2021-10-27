@@ -6,22 +6,26 @@ open Lean Machine.Types
 
 namespace List
   def forAll {α : Type u} (P : α → Prop) : List α → Prop
-  | []      => true
+  | []      => True
   | x :: xs => P x ∧ forAll P xs
 
   def successively {α : Type u} (R : α → α → Prop) : List α → Prop
-  | []           => true
-  | [x]          => true
-  | x :: y :: xs => R x y ∧ successively R xs
+  | []           => True
+  | [x]          => True
+  | x :: y :: ys => R x y ∧ successively R (y :: ys)
 
   def forLast {α : Type u} (P : α → Prop) : List α → Prop
-  | []      => true
+  | []      => True
   | [x]     => P x
   | x :: xs => forLast P xs
 
   def forFirst {α : Type u} (P : α → Prop) : List α → Prop
-  | []      => true
+  | []      => True
   | x :: xs => P x
+
+  def nonempty {α : Type u} : List α → Prop
+  | []      => False
+  | x :: xs => True
 end List
 
 namespace Machine.Types
@@ -82,7 +86,7 @@ namespace Machine.Simulator
   elab "asm " label:ident xs:mnemonic* " end" : command => do
     let (ρ, M) ← Machine.Parser.expand xs
     let xs ← Array.mapM instr.restore ρ
-    Elab.Command.elabDeclaration (← `(def $label := #[$xs,*]))
+    Elab.Command.elabDeclaration (← `(def $label : Array instr := #[$xs,*]))
 
     let opts ← getOptions
 
@@ -102,6 +106,33 @@ namespace Machine.Simulator
   def allowed (ρ : tape) (L : List machine) :=
   L.successively (computes ρ) ∧ L.forLast (completed ρ)
 
+  def terminator (ρ : tape) (L : List machine) :=
+  L.nonempty ∧ L.forFirst clean ∧ allowed ρ L
+
   def terminating (ρ : tape) :=
-  ∃ L, L.forFirst clean ∧ allowed ρ L
+  ∃ L, terminator ρ L
+
+  asm loop
+    M: jmp M
+  end
+
+  theorem some_inj {α : Type u} {a b : α} (p : some a = some b) : a = b :=
+  by { apply Option.noConfusion p; apply id }
+
+  theorem loop.conservative : ∀ (M₁ M₂ : machine), tick M₁ loop = M₂ → M₁ = M₂ :=
+  λ ⟨stack₁, regs₁, flags₁, progc₁⟩ ⟨stack₂, regs₂, flags₂, progc₂⟩ H => by {
+    induction progc₁; apply some_inj H; cases H
+  }
+
+  theorem loopTerminator : ∀ (L : List machine), terminator loop L → False
+  | [], ⟨p, _⟩ => p
+  | [x], ⟨_, ⟨q, ⟨_, h⟩⟩⟩ => by { rw [q] at h; cases h }
+  | x :: y :: ys, ⟨p, ⟨q, ⟨r, h⟩⟩⟩ => by {
+    apply loopTerminator (y :: ys); apply And.intro;
+    apply True.intro; apply And.intro; rw [←loop.conservative x y r.left];
+    apply q; apply And.intro; apply r.right; apply h
+  }
+
+  theorem nonterminating : ¬(terminating loop) :=
+  λ | Exists.intro L η => loopTerminator L η
 end Machine.Simulator
