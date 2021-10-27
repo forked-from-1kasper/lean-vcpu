@@ -50,9 +50,9 @@ namespace Machine.Simulator
   | instr.mul r₁ r₂ r₃ => ⟨M.stack, M.regs.replace r₃ (M.get r₁ * M.get r₂), M.flag, M.progc + 1⟩
   | instr.cmp r₁ r₂ => ⟨M.stack, M.regs, compare (M.get r₁) (M.get r₂), M.progc + 1⟩
   | instr.jmp ptr => ⟨M.stack, M.regs, M.flag, ptr⟩
-  | instr.je ptr => (condjmp M Ordering.eq ptr)
-  | instr.jg ptr => (condjmp M Ordering.gt ptr)
-  | instr.jl ptr => (condjmp M Ordering.lt ptr)
+  | instr.je ptr => condjmp M Ordering.eq ptr
+  | instr.jg ptr => condjmp M Ordering.gt ptr
+  | instr.jl ptr => condjmp M Ordering.lt ptr
   | instr.dump => M.next
 
   def instr.effect (M : machine) : instr → IO Unit
