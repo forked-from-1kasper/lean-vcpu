@@ -4,6 +4,22 @@ import Lean.Elab
 
 open Lean Machine.Types
 
+namespace List
+  def forAll {α : Type u} (P : α → Prop) : List α → Prop
+  | []      => true
+  | x :: xs => P x ∧ forAll P xs
+
+  def forAllPairs {α : Type u} (R : α → α → Prop) : List α → Prop
+  | []           => true
+  | [x]          => true
+  | x :: y :: xs => R x y ∧ forAllPairs R xs
+
+  def forLast {α : Type u} (P : α → Prop) : List α → Prop
+  | []      => true
+  | [x]     => P x
+  | x :: xs => forLast P xs
+end List
+
 namespace Machine.Types
   def machine.next : machine → machine
   | ⟨stack, regs, flag, progc⟩ => ⟨stack, regs, flag, progc + 1⟩
@@ -70,4 +86,14 @@ namespace Machine.Simulator
       do await M ρ (Machine.Options.executionDepth.get opts)
     else return ()
 
+  def computes (ρ : tape) (M₁ M₂ : machine) :=
+  tick M₁ ρ = some M₂
+
+  def completed (ρ : tape) (M : machine) :=
+  tick M ρ = none
+
+  structure chain (ρ : tape) :=
+  (L    : List machine)
+  (conn : L.forAllPairs (computes ρ))
+  (fin  : L.forLast (completed ρ))
 end Machine.Simulator
