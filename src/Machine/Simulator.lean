@@ -9,15 +9,19 @@ namespace List
   | []      => true
   | x :: xs => P x ∧ forAll P xs
 
-  def forAllPairs {α : Type u} (R : α → α → Prop) : List α → Prop
+  def successively {α : Type u} (R : α → α → Prop) : List α → Prop
   | []           => true
   | [x]          => true
-  | x :: y :: xs => R x y ∧ forAllPairs R xs
+  | x :: y :: xs => R x y ∧ successively R xs
 
   def forLast {α : Type u} (P : α → Prop) : List α → Prop
   | []      => true
   | [x]     => P x
   | x :: xs => forLast P xs
+
+  def forFirst {α : Type u} (P : α → Prop) : List α → Prop
+  | []      => true
+  | x :: xs => P x
 end List
 
 namespace Machine.Types
@@ -92,8 +96,9 @@ namespace Machine.Simulator
   def completed (ρ : tape) (M : machine) :=
   tick M ρ = none
 
-  structure chain (ρ : tape) :=
-  (L    : List machine)
-  (conn : L.forAllPairs (computes ρ))
-  (fin  : L.forLast (completed ρ))
+  def clean (M : machine) :=
+  M = machine.init
+
+  def allowed (ρ : tape) (L : List machine) :=
+  L.successively (computes ρ) ∧ L.forLast (completed ρ)
 end Machine.Simulator
