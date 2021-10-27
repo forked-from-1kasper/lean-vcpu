@@ -133,6 +133,6 @@ namespace Machine.Simulator
     apply q; apply And.intro; apply r.right; apply h
   }
 
-  theorem nonterminating : ¬(terminating loop) :=
+  theorem nonterminating : ¬terminating loop :=
   λ | Exists.intro L η => loopTerminator L η
 end Machine.Simulator
