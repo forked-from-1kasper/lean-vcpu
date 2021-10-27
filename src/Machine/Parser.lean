@@ -94,8 +94,8 @@ namespace Machine.Types
   private def zeroes : AssocList reg Int :=
   [(reg.r1, 0), (reg.r2, 0), (reg.r3, 0), (reg.r4, 0)].toAssocList
 
-  def machine.create (program : Array instr) : machine :=
-  ⟨program, Array.empty, zeroes, Ordering.eq, 0⟩
+  def machine.init : machine :=
+  ⟨Array.empty, zeroes, Ordering.eq, 0⟩
 end Machine.Types
 
 namespace Machine.Parser
@@ -104,13 +104,13 @@ namespace Machine.Parser
   | some idx => return idx
   | none     => throwError "unknown label “{x}”"
 
-  def expand (stx : Syntax) : CommandElabM machine := do
+  def expand (stx : Syntax) : CommandElabM (tape × machine) := do
     let xs := stx.getArgs.mapIdx (λ idx σ => mnemonic.expand idx.val σ)
     let ys := (Array.foldl (λ map =>
       λ | (none, _, _)   => map
         | (some k, v, _) => map.insert k v)
       AssocList.empty xs)
 
-    let program ← Array.mapM (instr.expand (extLabel ys)) (xs.map (λ (_, _, σ) => σ))
-    return machine.create program
+    let ρ ← Array.mapM (instr.expand (extLabel ys)) (xs.map (λ (_, _, σ) => σ))
+    return (ρ, machine.init)
 end Machine.Parser

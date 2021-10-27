@@ -26,8 +26,9 @@ inductive mnemonic
 | label     : String → instr → mnemonic
 | anonymous : instr → mnemonic
 
+def tape := Array instr
+
 structure machine :=
-(program : Array instr)
 (stack   : Array Int)
 (regs    : AssocList reg Int)
 (flag    : Ordering)
