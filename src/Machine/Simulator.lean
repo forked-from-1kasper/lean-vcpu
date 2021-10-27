@@ -101,4 +101,7 @@ namespace Machine.Simulator
 
   def allowed (ρ : tape) (L : List machine) :=
   L.successively (computes ρ) ∧ L.forLast (completed ρ)
+
+  def terminating (ρ : tape) :=
+  ∃ L, L.forFirst clean ∧ allowed ρ L
 end Machine.Simulator
