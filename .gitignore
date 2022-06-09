@@ -1,5 +1,6 @@
 *.olean
+*.cpp
 *.o
 *.a
-*.cpp
-./Machine
+/build
+/lean_packages

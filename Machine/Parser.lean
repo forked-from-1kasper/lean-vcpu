@@ -31,10 +31,10 @@ end Machine.Parser
 
 namespace Machine.Types.reg
   def expand : Syntax → CommandElabM reg
-  | `(reg|r1) => reg.r1
-  | `(reg|r2) => reg.r2
-  | `(reg|r3) => reg.r3
-  | `(reg|r4) => reg.r4
+  | `(reg| r1) => return reg.r1
+  | `(reg| r2) => return reg.r2
+  | `(reg| r3) => return reg.r3
+  | `(reg| r4) => return reg.r4
   | _ => throwError "invalid register"
 
   def restore : reg → CommandElabM Syntax
@@ -48,20 +48,20 @@ def ident (stx : Syntax) := stx.getId.toString
 
 namespace Machine.Types.instr
   def expand (label : String → CommandElabM Nat) : Syntax → CommandElabM instr
-  | `(instr|push $i:numLit) => instr.push i.isNatLit?.get!
-  | `(instr|push $r:reg) => do instr.pushr (← reg.expand r)
-  | `(instr|pop $r:reg) => do instr.popr (← reg.expand r)
-  | `(instr|dup) => instr.dup
-  | `(instr|add $r₁, $r₂, $r₃) => do instr.add (← reg.expand r₁) (← reg.expand r₂) (← reg.expand r₃)
-  | `(instr|neg $r₁, $r₂) => do instr.neg (← reg.expand r₁) (← reg.expand r₂)
-  | `(instr|mul $r₁, $r₂, $r₃) => do instr.mul (← reg.expand r₁) (← reg.expand r₂) (← reg.expand r₃)
-  | `(instr|cmp $r₁, $r₂) => do instr.cmp (← reg.expand r₁) (← reg.expand r₂)
-  | `(instr|jmp $i:ident) => instr.jmp <$> label (ident i)
-  | `(instr|je $i:ident) => instr.je <$> label (ident i)
-  | `(instr|jg $i:ident) => instr.jg <$> label (ident i)
-  | `(instr|jl $i:ident) => instr.jl <$> label (ident i)
-  | `(instr|dump) => instr.dump
-  | _ => throwError "invalid instruction"
+  | `(instr| push $i:num) => return instr.push i.isNatLit?.get!
+  | `(instr| push $r:reg) => return instr.pushr (← reg.expand r)
+  | `(instr| pop $r) => return instr.popr (← reg.expand r)
+  | `(instr| dup) => return instr.dup
+  | `(instr| add $r₁, $r₂, $r₃) => return instr.add (← reg.expand r₁) (← reg.expand r₂) (← reg.expand r₃)
+  | `(instr| neg $r₁, $r₂) => return instr.neg (← reg.expand r₁) (← reg.expand r₂)
+  | `(instr| mul $r₁, $r₂, $r₃) => do return instr.mul (← reg.expand r₁) (← reg.expand r₂) (← reg.expand r₃)
+  | `(instr| cmp $r₁, $r₂) => return instr.cmp (← reg.expand r₁) (← reg.expand r₂)
+  | `(instr| jmp $i) => instr.jmp <$> label (ident i)
+  | `(instr| je $i) => instr.je <$> label (ident i)
+  | `(instr| jg $i) => instr.jg <$> label (ident i)
+  | `(instr| jl $i) => instr.jl <$> label (ident i)
+  | `(instr| dump) => return instr.dump
+  | stx => throwError "invalid instruction “{stx}”"
 
   def restore : instr → CommandElabM Syntax
   | instr.push i => `(Machine.Types.instr.push $(mkNumLit (toString i)))
@@ -104,8 +104,8 @@ namespace Machine.Parser
   | some idx => return idx
   | none     => throwError "unknown label “{x}”"
 
-  def expand (stx : Syntax) : CommandElabM (tape × machine) := do
-    let xs := stx.getArgs.mapIdx (λ idx σ => mnemonic.expand idx.val σ)
+  def expand (stx : Array Syntax) : CommandElabM (tape × machine) := do
+    let xs := stx.mapIdx (λ idx σ => mnemonic.expand idx.val σ)
     let ys := (Array.foldl (λ map =>
       λ | (none, _, _)   => map
         | (some k, v, _) => map.insert k v)
